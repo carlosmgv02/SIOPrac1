@@ -3,9 +3,11 @@ import os
 from sqlalchemy.exc import IntegrityError
 from models import session, Titles, Genres, ProductionCountries, Credits, TitleGenres, TitleCountries
 import pandas as pd
-from data_cleaner import clean_list, convert_to_initials
+from data_cleaner import clean_list, convert_to_initials, clean_characters
 
-
+'''
+    This function is used to import the data from a row of the dataset into the database.
+'''
 def import_data_from_row(row, is_credit=False):
     if is_credit:
         try:
@@ -15,6 +17,16 @@ def import_data_from_row(row, is_credit=False):
         except IntegrityError as e:
             session.rollback()
     else:
+        # Procesar los personajes
+        characters = clean_characters(row['character'])
+        for character in characters:
+            try:
+                credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'], character=character,
+                                 role=row['role'])
+                session.add(credit)
+                session.commit()
+            except IntegrityError as e:
+                session.rollback()
         try:
 
             description = row['description'] if pd.notnull(row['description']) else None
@@ -25,6 +37,9 @@ def import_data_from_row(row, is_credit=False):
             tmdb_popularity = row['tmdb_popularity'] if pd.notnull(row['tmdb_popularity']) else None
             tmdb_score = row['tmdb_score'] if pd.notnull(row['tmdb_score']) else None
             genres = clean_list(row['genres'])
+
+            # Limpimos los nombres de los personajes
+            characters = clean_characters(row['characters'])
 
             new_title = Titles(
                 id=row['id'],
@@ -67,6 +82,9 @@ def import_data_from_row(row, is_credit=False):
             session.rollback()
 
 
+'''
+    This function is used to process all the files in the given directory.
+'''
 def process_files(directory):
     title_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Titles' in f]
     credit_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Credits' in f]

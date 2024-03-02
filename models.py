@@ -13,17 +13,25 @@ engine = create_engine(DB_URI)
 Session = sessionmaker(bind=engine)
 session = Session()
 
+'''
+    Tabla de relación M:N para TitleGenres
+'''
 TitleGenres = Table('titlegenres', Base.metadata,
     Column('title_id', String, ForeignKey('titles.id'), primary_key=True),
     Column('genre_id', Integer, ForeignKey('genres.id'), primary_key=True)
 )
 
-# Tabla de relación M:N para TitleCountries
+'''
+    Tabla de relación M:N para TitleCountries
+'''
 TitleCountries = Table('titlecountries', Base.metadata,
     Column('title_id', String, ForeignKey('titles.id'), primary_key=True),
     Column('country_id', Integer, ForeignKey('productioncountries.id'), primary_key=True)
 )
 
+'''
+    Clase que representa la tabla de títulos.
+'''
 class Titles(Base):
     __tablename__ = 'titles'
     id = Column(String, primary_key=True)
@@ -44,6 +52,9 @@ class Titles(Base):
     countries = relationship('ProductionCountries', secondary=TitleCountries, back_populates='titles')
     credits = relationship('Credits', back_populates='title')
 
+'''
+    Clase que representa la tabla de géneros.
+'''
 class Genres(Base):
     __tablename__ = 'genres'
     id = Column(Integer, primary_key=True)
@@ -51,6 +62,9 @@ class Genres(Base):
     # Relación inversa
     titles = relationship('Titles', secondary=TitleGenres, back_populates='genres')
 
+'''
+    Clase que representa la tabla de países de producción.
+'''
 class ProductionCountries(Base):
     __tablename__ = 'productioncountries'
     id = Column(Integer, primary_key=True)
@@ -58,6 +72,9 @@ class ProductionCountries(Base):
     # Relación inversa
     titles = relationship('Titles', secondary=TitleCountries, back_populates='countries')
 
+'''
+    Clase que representa la tabla de créditos.
+'''
 class Credits(Base):
     __tablename__ = 'credits'
     person_id = Column(Integer, primary_key=True)
@@ -68,4 +85,14 @@ class Credits(Base):
     # Relación con Titles
     title = relationship('Titles', back_populates='credits')
 
+'''
+class Characters(Base):
+    __tablename__ = 'characters'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    # Relación con Credits
+    credit_id = Column(Integer, ForeignKey('credits.id'))
+    credit = relationship('Credits', back_populates='characters')
+
+'''
 Base.metadata.create_all(engine)
