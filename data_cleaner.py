@@ -1,3 +1,5 @@
+import math
+
 import pandas as pd
 import re
 import ast
@@ -30,6 +32,14 @@ def convert_to_initials(country_name):
     This function is used to clean the list of characters from the dataset.
 '''
 def clean_characters(characters):
+    # Comprobamos si characters es un valor NaN numérico o None
+    if characters is None or (isinstance(characters, float) and math.isnan(characters)):
+        return []
+
+    # Asumiendo que quieres mantener la comprobación de la cadena 'nan' también
+    if characters == 'nan':
+        return []
+
     cleaned_characters = []
     # Dividimos los nombres de personajes usando diferentes delimitadores
     for character in characters.split('/'):
@@ -38,6 +48,9 @@ def clean_characters(characters):
 
         # Si el nombre del personaje contiene un paréntesis, solo mantenemos el nombre antes del paréntesis
         character = re.sub(r'\s*\(.*\)', '', character)
+
+        # Si el nombre del personaje contiene un guion, solo mantenemos el nombre antes del guion
+        character = character.split(' - ')[0]
 
         # Si el nombre del personaje contiene una coma, lo dividimos y agregamos cada parte a la lista de personajes
         if ',' in character:

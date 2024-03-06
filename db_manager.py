@@ -10,23 +10,17 @@ from data_cleaner import clean_list, convert_to_initials, clean_characters
 '''
 def import_data_from_row(row, is_credit=False):
     if is_credit:
-        try:
-            credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'], character=row['character'], role=row['role'])
-            session.add(credit)
-            session.commit()
-        except IntegrityError as e:
-            session.rollback()
-    else:
-        # Procesar los personajes
         characters = clean_characters(row['character'])
         for character in characters:
             try:
-                credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'], character=character,
+                credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'],
+                                 character=character,
                                  role=row['role'])
                 session.add(credit)
                 session.commit()
             except IntegrityError as e:
                 session.rollback()
+    else:
         try:
 
             description = row['description'] if pd.notnull(row['description']) else None
@@ -37,9 +31,6 @@ def import_data_from_row(row, is_credit=False):
             tmdb_popularity = row['tmdb_popularity'] if pd.notnull(row['tmdb_popularity']) else None
             tmdb_score = row['tmdb_score'] if pd.notnull(row['tmdb_score']) else None
             genres = clean_list(row['genres'])
-
-            # Limpimos los nombres de los personajes
-            characters = clean_characters(row['characters'])
 
             new_title = Titles(
                 id=row['id'],
@@ -89,6 +80,7 @@ def process_files(directory):
     title_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Titles' in f]
     credit_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Credits' in f]
 
+
     # Procesar primero todos los archivos de títulos
     for file_name in title_files:
         print(f"Processing Titles: {file_name}...")
@@ -96,6 +88,7 @@ def process_files(directory):
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
             import_data_from_row(row, is_credit=False)
+
 
     # Luego procesar todos los archivos de créditos
     for file_name in credit_files:
