@@ -1,7 +1,7 @@
 import os
 
 from sqlalchemy.exc import IntegrityError
-from models import session, Titles, Genres, ProductionCountries, Credits, TitleGenres, TitleCountries
+from models import *
 import pandas as pd
 from data_cleaner import clean_list, convert_to_initials, clean_characters
 
@@ -13,16 +13,23 @@ def import_data_from_row(row, is_credit=False):
         characters = clean_characters(row['character'])
         for character in characters:
             try:
+                # Primero, busca si el role ya existe, si no, crea uno nuevo
+                role = session.query(Roles).filter_by(name=row['role']).first()
+                if not role:
+                    role = Roles(name=row['role'])
+                    session.add(role)
+                    session.flush()  # Asegurarse de obtener un ID para el nuevo rol
+
+                # Ahora crea o actualiza el crédito con role_id
                 credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'],
-                                 character=character,
-                                 role=row['role'])
+                                 character=character, role_id=role.id)  # Usar role_id aquí
                 session.add(credit)
                 session.commit()
             except IntegrityError as e:
+                print(f"Error adding/updating credit for character {character}: {e}")
                 session.rollback()
     else:
         try:
-
             description = row['description'] if pd.notnull(row['description']) else None
             age_certification = row['age_certification'] if pd.notnull(row['age_certification']) else None
             imdb_id = row['imdb_id'] if pd.notnull(row['imdb_id']) else None
@@ -59,7 +66,6 @@ def import_data_from_row(row, is_credit=False):
                 new_title.genres.append(genre)
 
             for country_name in clean_list(row['production_countries']):
-                # Convierte el nombre del país a iniciales si es necesario
                 country_code = convert_to_initials(country_name)
                 country = session.query(ProductionCountries).filter_by(country_code=country_code).first()
                 if not country:
@@ -70,7 +76,9 @@ def import_data_from_row(row, is_credit=False):
 
             session.commit()
         except IntegrityError as e:
+            #print(f"Error adding/updating title: {e}")
             session.rollback()
+
 
 
 '''

@@ -81,18 +81,19 @@ class Credits(Base):
     title_id = Column(String, ForeignKey('titles.id'))
     name = Column(String)
     character = Column(String)
-    role = Column(String)
-    # Relación con Titles
+    role_id = Column(Integer, ForeignKey('roles.id'))  # Clave foránea hacia roles
+
+    # Relaciones
     title = relationship('Titles', back_populates='credits')
+    role = relationship('Roles', back_populates='credits')  # Relación con Roles
 
-'''
-class Characters(Base):
-    __tablename__ = 'characters'
+
+class Roles(Base):
+    __tablename__ = 'roles'
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    # Relación con Credits
-    credit_id = Column(Integer, ForeignKey('credits.id'))
-    credit = relationship('Credits', back_populates='characters')
+    name = Column(String, unique=True)
 
-'''
+    # Relación inversa con Credits
+    credits = relationship('Credits', back_populates='role')
+
 Base.metadata.create_all(engine)
