@@ -2,6 +2,10 @@ import os
 import pandas as pd
 from py2neo import Graph, Node, Relationship
 from data_cleaner import clean_list
+import logging
+
+# Configurar el logging
+logging.basicConfig(filename='neo4j_data_load.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Conexión a la base de datos de Neo4j
 graph = Graph("bolt://localhost:7687", auth=("neo4j", "password"))
@@ -30,13 +34,14 @@ def load_data_into_graph(directory):
 
     # Procesar primero todos los archivos de títulos
     for file_name in title_files:
-        print(f"Processing Titles: {file_name}...")
+        logging.info(f"Processing Titles: {file_name}")
         file_path = os.path.join(directory, file_name)
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
             # Creamos el nodo de la película/serie
             movie_node = create_show_movie_node(row['title'], row['release_year'])
             graph.create(movie_node)
+            logging.info(f"Created ShowMovie node: {row['title']}")
 
             # Cargamos los datos relacionados con la película/serie
             genres = clean_list(row['genres'])
@@ -44,16 +49,18 @@ def load_data_into_graph(directory):
                 genre_node = Node("Genre", name=genre_name)
                 graph.create(genre_node)
                 graph.create(Relationship(movie_node, "BELONGS_TO", genre_node))
+                logging.info(f"Created Genre node and relationship for {row['title']}: {genre_name}")
 
             countries = clean_list(row['production_countries'])
             for country_name in countries:
                 country_node = Node("Country", name=country_name)
                 graph.create(country_node)
                 graph.create(Relationship(movie_node, "PRODUCED_IN", country_node))
+                logging.info(f"Created Country node and relationship for {row['title']}: {country_name}")
 
     # Luego procesar todos los archivos de créditos
     for file_name in credit_files:
-        print(f"Processing Credits: {file_name}...")
+        logging.info(f"Processing Credits: {file_name}")
         file_path = os.path.join(directory, file_name)
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
@@ -65,3 +72,8 @@ def load_data_into_graph(directory):
                 relationship = create_relationship(person_node, movie_node, row['role'], row['character'])
                 if relationship:
                     graph.create(relationship)
+                    logging.info(f"Created relationship between {row['name']} and {row['title']}: {row['role']}")
+
+if __name__ == "__main__":
+    directory = "Dataset"  # Asegúrate de cambiar esto por la ruta real a tu directorio de datos
+    load_data_into_graph(directory)
