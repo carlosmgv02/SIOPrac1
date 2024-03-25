@@ -5,7 +5,6 @@ CREATE TABLE Titles (
     type VARCHAR(50),
     description TEXT,
     release_year INT,
-    age_certification VARCHAR(50),
     runtime INT,
     seasons INT,
     imdb_id VARCHAR(50),
@@ -13,6 +12,21 @@ CREATE TABLE Titles (
     imdb_votes INT,
     tmdb_popularity FLOAT,
     tmdb_score FLOAT
+    age_certification_id INT,
+    FOREIGN KEY (age_certification_id) REFERENCES AgeCertifications (id) ON DELETE SET NULL
+    FOREIGN KEY (platform_id) REFERENCES Platforms (id) ON DELETE SET NULL
+);
+
+-- Crear taula AgeCertifications
+CREATE TABLE AgeCertifications (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE
+);
+
+-- Crear taula Platforms
+CREATE TABLE Platforms (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE
 );
 
 -- Crear tabla Genres
