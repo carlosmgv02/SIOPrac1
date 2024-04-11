@@ -39,7 +39,6 @@ class Titles(Base):
     type = Column(String)
     description = Column(String)
     release_year = Column(Integer)
-    age_certification = Column(String)
     runtime = Column(Integer)
     seasons = Column(Integer)
     imdb_id = Column(String)
@@ -47,10 +46,16 @@ class Titles(Base):
     imdb_votes = Column(Integer)
     tmdb_popularity = Column(Float)
     tmdb_score = Column(Float)
-    # Relaciones
+    age_certification_id = Column(Integer, ForeignKey('agecertifications.id'))
+    platform_id = Column(Integer, ForeignKey('platforms.id'))
+
+    # Relaciones actualizadas
     genres = relationship('Genres', secondary=TitleGenres, back_populates='titles')
     countries = relationship('ProductionCountries', secondary=TitleCountries, back_populates='titles')
     credits = relationship('Credits', back_populates='title')
+    age_certification = relationship('AgeCertifications')
+    platform = relationship('Platforms')
+
 
 '''
     Clase que representa la tabla de géneros.
@@ -75,17 +80,31 @@ class ProductionCountries(Base):
 '''
     Clase que representa la tabla de créditos.
 '''
+
+
 class Credits(Base):
     __tablename__ = 'credits'
-    person_id = Column(Integer, primary_key=True)
-    title_id = Column(String, ForeignKey('titles.id'))
-    name = Column(String)
+    # Cambia la definición de person_id para que ya no sea la clave primaria por sí sola.
+    person_id = Column(Integer, ForeignKey('people.id'), primary_key=True)
+    title_id = Column(String, ForeignKey('titles.id'), primary_key=True)
+    role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
+    # Añade una columna para el nombre del personaje si es necesario
     character = Column(String)
-    role_id = Column(Integer, ForeignKey('roles.id'))  # Clave foránea hacia roles
 
     # Relaciones
     title = relationship('Titles', back_populates='credits')
-    role = relationship('Roles', back_populates='credits')  # Relación con Roles
+    role = relationship('Roles', back_populates='credits')
+
+
+class AgeCertifications(Base):
+    __tablename__ = 'agecertifications'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), unique=True)
+
+class Platforms(Base):
+    __tablename__ = 'platforms'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True)
 
 
 class Roles(Base):

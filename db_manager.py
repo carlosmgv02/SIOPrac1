@@ -4,79 +4,99 @@ from sqlalchemy.exc import IntegrityError
 from models import *
 import pandas as pd
 from data_cleaner import clean_list, convert_to_initials, clean_characters
+from processing_utils import get_or_create_age_certification, normalize_data, process_genres, process_countries
+from utils import extract_provider_name
 
 '''
     This function is used to import the data from a row of the dataset into the database.
 '''
-def import_data_from_row(row, is_credit=False):
+def import_data_from_row(row, provider_name, is_credit=False):
+    # Buscar o crear la plataforma basada en provider_name
+    platform = session.query(Platforms).filter_by(name=provider_name).first()
+    if not platform:
+        platform = Platforms(name=provider_name)
+        session.add(platform)
+        session.commit()
     if is_credit:
         characters = clean_characters(row['character'])
         for character in characters:
             try:
-                # Primero, busca si el role ya existe, si no, crea uno nuevo
                 role = session.query(Roles).filter_by(name=row['role']).first()
                 if not role:
                     role = Roles(name=row['role'])
                     session.add(role)
-                    session.flush()  # Asegurarse de obtener un ID para el nuevo rol
+                    session.flush()
 
-                # Ahora crea o actualiza el crédito con role_id
-                credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'],
-                                 character=character, role_id=role.id)  # Usar role_id aquí
-                session.add(credit)
+                # Verifica si ya existe el crédito
+                existing_credit = session.query(Credits).filter_by(person_id=row['person_id'], title_id=row['id'],
+                                                                   role_id=role.id).first()
+                if existing_credit:
+                    existing_credit.character = character  # Esto asume que quieres actualizar el personaje
+                else:
+                    # Crea un nuevo crédito si no existe
+                    credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'],
+                                     character=character, role_id=role.id)
+                    session.add(credit)
+
                 session.commit()
             except IntegrityError as e:
-                print(f"Error adding/updating credit for character {character}: {e}")
+                print(f"Error processing credit {row['id']}: {e}")
                 session.rollback()
     else:
         try:
-            description = row['description'] if pd.notnull(row['description']) else None
-            age_certification = row['age_certification'] if pd.notnull(row['age_certification']) else None
-            imdb_id = row['imdb_id'] if pd.notnull(row['imdb_id']) else None
-            imdb_score = row['imdb_score'] if pd.notnull(row['imdb_score']) else None
-            imdb_votes = row['imdb_votes'] if pd.notnull(row['imdb_votes']) else None
-            tmdb_popularity = row['tmdb_popularity'] if pd.notnull(row['tmdb_popularity']) else None
-            tmdb_score = row['tmdb_score'] if pd.notnull(row['tmdb_score']) else None
-            genres = clean_list(row['genres'])
+            description = None if pd.isna(row['description']) else row['description']
+            imdb_id = None if pd.isna(row['imdb_id']) else row['imdb_id']
+            imdb_score = None if pd.isna(row['imdb_score']) else float(row['imdb_score'])
+            imdb_votes = None if pd.isna(row['imdb_votes']) else int(row['imdb_votes'])
+            tmdb_popularity = None if pd.isna(row['tmdb_popularity']) else float(row['tmdb_popularity'])
+            tmdb_score = None if pd.isna(row['tmdb_score']) else float(row['tmdb_score'])
 
-            new_title = Titles(
-                id=row['id'],
-                title=row['title'],
-                type=row['type'],
-                description=description,
-                release_year=row['release_year'],
-                age_certification=age_certification,
-                runtime=row['runtime'],
-                seasons=int(row['seasons']) if pd.notnull(row['seasons']) else None,
-                imdb_id=imdb_id,
-                imdb_score=imdb_score,
-                imdb_votes=imdb_votes,
-                tmdb_popularity=tmdb_popularity,
-                tmdb_score=tmdb_score
-            )
-            session.add(new_title)
-            session.flush()
+            # Obteniendo o creando la certificación de edad si no es NaN.
+            age_certification = None
+            if pd.notna(row['age_certification']):
+                age_certification = get_or_create_age_certification(session, row['age_certification'])
 
-            for genre_name in genres:
-                genre = session.query(Genres).filter_by(name=genre_name).first()
-                if not genre:
-                    genre = Genres(name=genre_name)
-                    session.add(genre)
-                    session.flush()
-                new_title.genres.append(genre)
+            existing_title = session.query(Titles).filter_by(id=row['id']).first()
+            if existing_title:
+                # Normaliza y actualiza los datos si el título ya existe.
+                normalize_data(session, existing_title, {
+                    'description': description,
+                    'imdb_id': imdb_id,
+                    'imdb_score': imdb_score,
+                    'imdb_votes': imdb_votes,
+                    'tmdb_popularity': tmdb_popularity,
+                    'tmdb_score': tmdb_score,
+                    # Incluye cualquier otro campo que necesites actualizar.
+                })
+            else:
+                new_title = Titles(
+                    id=row['id'],
+                    title=row['title'],
+                    type=row['type'],
+                    description=description,
+                    release_year=int(row['release_year']),
+                    runtime=int(row['runtime']),
+                    seasons=int(row['seasons']) if pd.notnull(row['seasons']) else None,
+                    imdb_id=imdb_id,
+                    imdb_score=imdb_score,
+                    imdb_votes=imdb_votes,
+                    tmdb_popularity=tmdb_popularity,
+                    tmdb_score=tmdb_score,
+                    platform_id=platform.id,
+                    age_certification_id=age_certification.id if age_certification else None
+                )
+                session.add(new_title)
+                session.flush()
 
-            for country_name in clean_list(row['production_countries']):
-                country_code = convert_to_initials(country_name)
-                country = session.query(ProductionCountries).filter_by(country_code=country_code).first()
-                if not country:
-                    country = ProductionCountries(country_code=country_code)
-                    session.add(country)
-                    session.flush()
-                new_title.countries.append(country)
+            if not existing_title:
+                # Solo procesa géneros y países si es un nuevo título
+                process_genres(row.get('genres'), new_title)
+                process_countries(row.get('production_countries'), new_title)
+
 
             session.commit()
-        except IntegrityError as e:
-            #print(f"Error adding/updating title: {e}")
+        except Exception as e:
+            print(f"Error processing title {row['id']}: {e}")
             session.rollback()
 
 
@@ -89,19 +109,12 @@ def process_files(directory):
     credit_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Credits' in f]
 
 
-    # Procesar primero todos los archivos de títulos
-    for file_name in title_files:
-        print(f"Processing Titles: {file_name}...")
-        file_path = os.path.join(directory, file_name)
-        df = pd.read_csv(file_path)
-        for index, row in df.iterrows():
-            import_data_from_row(row, is_credit=False)
 
-
-    # Luego procesar todos los archivos de créditos
+    # Procesar archivos de créditos
     for file_name in credit_files:
         print(f"Processing Credits: {file_name}...")
+        provider_name = extract_provider_name(file_name)  # Extrae correctamente el nombre del proveedor
         file_path = os.path.join(directory, file_name)
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
-            import_data_from_row(row, is_credit=True)
+            import_data_from_row(row, provider_name, is_credit=True)
