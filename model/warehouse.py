@@ -1,17 +1,14 @@
 import sqlalchemy.orm
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Table
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Table, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
-DB_URI = os.getenv('DB_URI')
+from config.warehouse_config import get_db_session
 
 Base = sqlalchemy.orm.declarative_base()
-engine = create_engine(DB_URI)
-Session = sessionmaker(bind=engine)
-session = Session()
+session = get_db_session()
 
 '''
     Tabla de relación M:N para TitleGenres
@@ -55,7 +52,7 @@ class Titles(Base):
     credits = relationship('Credits', back_populates='title')
     age_certification = relationship('AgeCertifications')
     platform = relationship('Platforms')
-
+    interactions = relationship("UserInteractions", back_populates="title")
 
 '''
     Clase que representa la tabla de géneros.
@@ -115,4 +112,32 @@ class Roles(Base):
     # Relación inversa con Credits
     credits = relationship('Credits', back_populates='role')
 
-Base.metadata.create_all(engine)
+class People(Base):
+    __tablename__ = 'people'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)  # Asegúrate de que el nombre es único si lo usas para evitar duplicados
+
+
+class UserPreferences(Base):
+    __tablename__ = 'user_preferences'
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, unique=True, nullable=False)
+    interactions = relationship("UserInteractions", back_populates="user")
+
+
+
+class UserInteractions(Base):
+    __tablename__ = 'user_interactions'
+
+    interaction_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('user_preferences.user_id'), nullable=False)
+    title_id = Column(String, ForeignKey('titles.id'), nullable=False)
+    rating = Column(Integer)  # Optional, scale of 1 to 5
+    watched = Column(Boolean, default=False)
+
+    # Relationships
+    user = relationship("UserPreferences", back_populates="interactions")
+    title = relationship("Titles", back_populates="interactions")
+
+
+Base.metadata.create_all(session.bind)

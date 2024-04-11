@@ -1,7 +1,7 @@
 import pandas as pd
 
 from data_cleaner import clean_list, convert_to_initials
-from models import *
+from model.warehouse import *
 
 
 def get_or_create_age_certification(session, age_certification_name):
@@ -42,6 +42,15 @@ def process_genres(genres_str, title_obj):
             session.flush()
         title_obj.genres.append(genre)
 
+def get_or_create_person(session, name):
+    person = session.query(People).filter_by(name=name).first()
+    if not person:
+        person = People(name=name)
+        session.add(person)
+        session.commit()  # Asegúrate de hacer commit solo si es necesario
+    return person
+
+
 def process_countries(countries_str, title_obj):
     countries = clean_list(countries_str)
     for country_name in countries:
@@ -52,3 +61,8 @@ def process_countries(countries_str, title_obj):
             session.add(country)
             session.flush()
         title_obj.countries.append(country)
+
+def extract_provider_name(file_name):
+    parts = file_name.rsplit('_', 1)  # Dividir por la última aparición de '_'
+    provider_name = parts[0].replace('_', ' ')  # Reemplazar los restantes '_' por espacios
+    return provider_name

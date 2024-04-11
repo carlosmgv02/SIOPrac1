@@ -1,11 +1,10 @@
-import os
-
 from sqlalchemy.exc import IntegrityError
-from models import *
+from model.warehouse import *
 import pandas as pd
-from data_cleaner import clean_list, convert_to_initials, clean_characters
-from processing_utils import get_or_create_age_certification, normalize_data, process_genres, process_countries
-from utils import extract_provider_name
+from data_cleaner import clean_characters
+from processing_utils import get_or_create_age_certification, normalize_data, process_genres, process_countries, \
+    get_or_create_person
+from processing_utils import extract_provider_name
 
 '''
     This function is used to import the data from a row of the dataset into the database.
@@ -21,27 +20,27 @@ def import_data_from_row(row, provider_name, is_credit=False):
         characters = clean_characters(row['character'])
         for character in characters:
             try:
+                person = get_or_create_person(session, row['name'])  # Asume que 'name' es el nombre de la persona
+
                 role = session.query(Roles).filter_by(name=row['role']).first()
                 if not role:
                     role = Roles(name=row['role'])
                     session.add(role)
                     session.flush()
 
-                # Verifica si ya existe el crédito
-                existing_credit = session.query(Credits).filter_by(person_id=row['person_id'], title_id=row['id'],
+                existing_credit = session.query(Credits).filter_by(person_id=person.id, title_id=row['id'],
                                                                    role_id=role.id).first()
                 if existing_credit:
-                    existing_credit.character = character  # Esto asume que quieres actualizar el personaje
+                    existing_credit.character = character
                 else:
-                    # Crea un nuevo crédito si no existe
-                    credit = Credits(person_id=row['person_id'], title_id=row['id'], name=row['name'],
-                                     character=character, role_id=role.id)
+                    credit = Credits(person_id=person.id, title_id=row['id'], character=character, role_id=role.id)
                     session.add(credit)
 
                 session.commit()
             except IntegrityError as e:
                 print(f"Error processing credit {row['id']}: {e}")
                 session.rollback()
+
     else:
         try:
             description = None if pd.isna(row['description']) else row['description']
@@ -108,12 +107,19 @@ def process_files(directory):
     title_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Titles' in f]
     credit_files = [f for f in os.listdir(directory) if f.endswith('.csv') and 'Credits' in f]
 
+    for file_name in title_files:
+        print(f"Processing Titles: {file_name}...")
+        provider_name = (file_name)  # Extrae correctamente el nombre del proveedor
+        file_path = os.path.join(directory, file_name)
+        df = pd.read_csv(file_path)
+        for index, row in df.iterrows():
+            import_data_from_row(row, provider_name, is_credit=False)
 
 
     # Procesar archivos de créditos
     for file_name in credit_files:
         print(f"Processing Credits: {file_name}...")
-        provider_name = extract_provider_name(file_name)  # Extrae correctamente el nombre del proveedor
+        provider_name = (file_name)  # Extrae correctamente el nombre del proveedor
         file_path = os.path.join(directory, file_name)
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
