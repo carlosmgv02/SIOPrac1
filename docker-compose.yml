@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.2
+    image: elasticsearch:7.9.2
     environment:
       - discovery.type=single-node
     ports:
@@ -9,6 +9,7 @@ services:
       - "9300:9300"
     volumes:
       - esdata1:/usr/share/elasticsearch/data
+    platform: "linux/amd64"
   neo4j:
     image: neo4j:4.2.1
     environment:
@@ -29,7 +30,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   rabbitmq:
-    image: "rabbitmq:3-management"
+    image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -38,6 +39,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: "user"
       RABBITMQ_DEFAULT_PASS: "password"
+    platform: "linux/amd64"
 
 volumes:
   esdata1:
