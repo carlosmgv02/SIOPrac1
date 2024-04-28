@@ -11,3 +11,6 @@ def get_db_session():
     engine = create_engine(POSTGRES_URI)
     Session = sessionmaker(bind=engine)
     return Session()
+
+def get_db_engine():
+    return create_engine(POSTGRES_URI)
