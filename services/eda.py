@@ -32,16 +32,16 @@ class EDA:
         """
         return self.data.isnull().sum()
 
-    def plot_histogram(self, column, bins=10):
+    def plot_histogram(self, ax, column, bins=10):
         """
-        Plotea un histograma para una columna específica.
+        Plotea un histograma usando el objeto ax proporcionado.
         """
-        self.clean_numeric(column)  # Limpia y convierte la columna
-        self.data[column].dropna().hist(bins=bins)
-        plt.title(f'Histograma de {column}')
-        plt.xlabel(column)
-        plt.ylabel('Frecuencia')
-        plt.show()
+        self.clean_numeric(column)
+        self.data[column].dropna().hist(bins=bins, ax=ax)
+        ax.set_title(f'Histograma de {column}')
+        ax.set_xlabel(column)
+        ax.set_ylabel('Frecuencia')
+
 
     def plot_boxplot(self, column):
         """
@@ -87,20 +87,15 @@ class EDA:
         plt.xlabel(column)
         plt.show()
 
-    def plot_heatmap(self, columns, title):
+    def plot_heatmap(self, ax, columns, title):
         """
-        Crea un mapa de calor para las correlaciones entre las columnas especificadas.
-
-        :param columns: Lista de nombres de columnas a considerar.
-        :param title: Título del mapa de calor.
+        Plotea un mapa de calor en el objeto ax proporcionado.
         """
         for col in columns:
             self.clean_numeric(col)
         corr_matrix = self.data[columns].corr()
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
-        plt.title(title)
-        plt.show()
+        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', ax=ax)
+        ax.set_title(title)
 
     def plot_scatter(self, x, y, title):
         """
