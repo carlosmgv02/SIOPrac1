@@ -120,24 +120,40 @@ class People(Base):
 
 class UserPreferences(Base):
     __tablename__ = 'user_preferences'
-    user_id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
-    interactions = relationship("UserInteractions", back_populates="user")
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    preferred_type = Column(String)
+    favorite_genre_id = Column(Integer, ForeignKey('genres.id'))
+    preferred_certification_id = Column(Integer, ForeignKey('agecertifications.id'))
+    preferred_platform_id = Column(Integer, ForeignKey('platforms.id'))
+    preferred_duration_min = Column(Integer)
+    preferred_duration_max = Column(Integer)
 
-
+    user = relationship('User', back_populates='preferences')
+    favorite_genre = relationship('Genres')
+    preferred_certification = relationship('AgeCertifications')
+    preferred_platform = relationship('Platforms')
 
 class UserInteractions(Base):
     __tablename__ = 'user_interactions'
-
-    interaction_id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('user_preferences.user_id'), nullable=False)
+    interaction_id = Column(Integer, primary_key=True, autoincrement=True)  # Ensure this is defined
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     title_id = Column(String, ForeignKey('titles.id'), nullable=False)
-    rating = Column(Integer)  # Optional, scale of 1 to 5
+    rating = Column(Integer)
     watched = Column(Boolean, default=False)
 
-    # Relationships
-    user = relationship("UserPreferences", back_populates="interactions")
+    user = relationship("User", back_populates="interactions")
     title = relationship("Titles", back_populates="interactions")
+
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, unique=True)
+
+    preferences = relationship('UserPreferences', back_populates='user', uselist=False)
+    interactions = relationship('UserInteractions', back_populates='user')
+
 
 
 Base.metadata.create_all(session.bind)
