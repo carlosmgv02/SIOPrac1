@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+
+from utils.processing_utils import extract_provider_name
 from utils.textUtils import upperCaseFirstLetter
 from model.warehouse import session, User, UserPreferences, Genres, AgeCertifications, Platforms
 import tkinter.messagebox as tkmessagebox
@@ -15,7 +17,7 @@ class UserPreferencesManager:
         # Get genres, certifications, and platforms from the database
         genres = [upperCaseFirstLetter(genre.name) for genre in session.query(Genres).all()]
         certifications = [upperCaseFirstLetter(cert.name) for cert in session.query(AgeCertifications).all()]
-        platforms = [upperCaseFirstLetter(platform.name) for platform in session.query(Platforms).all()]
+        platforms = [extract_provider_name(upperCaseFirstLetter(platform.name)) for platform in session.query(Platforms).all()]
 
         # Campos de configuración (Tipo Preferido, Género, etc.)
         labels_texts = ["Nombre de Usuario:", "Tipo Preferido:", "Género Favorito:", "Certificación de Edad Preferida:",
@@ -115,6 +117,7 @@ class UserPreferencesManager:
                 # Obtener las preferencias del usuario si existen
                 preferences = session.query(UserPreferences).filter_by(user_id=user.id).first()
                 if preferences:
+                    preferences.preferred_platform.name = extract_provider_name(preferences.preferred_platform.name)
                     # Cargar las preferencias en los campos de entrada
                     self.vars['type'].set(preferences.preferred_type)
                     self.vars['genre'].set(preferences.favorite_genre.name)
