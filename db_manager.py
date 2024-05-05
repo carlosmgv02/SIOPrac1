@@ -109,18 +109,20 @@ def process_files(directory):
 
     for file_name in title_files:
         print(f"Processing Titles: {file_name}...")
-        provider_name = (file_name)  # Extrae correctamente el nombre del proveedor
+        raw_provider_name = (file_name)  # Extrae correctamente el nombre del proveedor
         file_path = os.path.join(directory, file_name)
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
+            provider_name = extract_provider_name(raw_provider_name)
             import_data_from_row(row, provider_name, is_credit=False)
 
 
     # Procesar archivos de créditos
     for file_name in credit_files:
         print(f"Processing Credits: {file_name}...")
-        provider_name = (file_name)  # Extrae correctamente el nombre del proveedor
+        raw_provider_name = (file_name)  # Extrae correctamente el nombre del proveedor
         file_path = os.path.join(directory, file_name)
         df = pd.read_csv(file_path)
         for index, row in df.iterrows():
+            provider_name = extract_provider_name(raw_provider_name)
             import_data_from_row(row, provider_name, is_credit=True)
