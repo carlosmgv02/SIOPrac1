@@ -1,6 +1,6 @@
 import pandas as pd
 
-from data_cleaner import clean_list, convert_to_initials
+from utils.data_cleaner import clean_list, convert_to_initials
 from model.warehouse import *
 
 

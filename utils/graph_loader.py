@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from py2neo import Graph, Node, Relationship
-from data_cleaner import clean_list
+from utils.data_cleaner import clean_list
 import logging
 
 # Configurar el logging

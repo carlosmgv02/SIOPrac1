@@ -1,10 +1,10 @@
 from sqlalchemy.exc import IntegrityError
 from model.warehouse import *
 import pandas as pd
-from data_cleaner import clean_characters
-from processing_utils import get_or_create_age_certification, normalize_data, process_genres, process_countries, \
+from utils.data_cleaner import clean_characters
+from utils.processing_utils import get_or_create_age_certification, normalize_data, process_genres, process_countries, \
     get_or_create_person
-from processing_utils import extract_provider_name
+from utils.processing_utils import extract_provider_name
 
 '''
     This function is used to import the data from a row of the dataset into the database.
