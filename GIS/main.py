@@ -44,9 +44,12 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
             fig.add_trace(go.Choroplethmapbox(
                 geojson=json.loads(gdf_countries.to_json()),
                 locations=gdf_countries.index,
-                z=gdf_countries['ADMIN'],
+                z=gdf_countries.index,
+                text=gdf_countries['ADMIN'],  # Añadir nombres de los países como etiquetas
                 colorscale="Viridis",
                 marker_line_width=0,
+                hoverinfo="text+z",  # Mostrar información del texto y valor z en el hover
+                hovertext=gdf_countries['ADMIN'],  # Texto que se mostrará en el hover
                 visible=True,
                 name='Countries'
             ))
@@ -55,10 +58,13 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
             fig.add_trace(go.Choroplethmapbox(
                 geojson=json.loads(gdf_continents.to_json()),
                 locations=gdf_continents.index,
-                z=gdf_continents['continent'],
+                z=gdf_continents.index,
+                text=gdf_continents['continent'],  # Añadir nombres de los continentes como etiquetas
                 colorscale="Inferno",
                 marker_line_width=0,
-                visible=True,
+                hoverinfo="text+z",  # Mostrar información del texto y valor z en el hover
+                hovertext=gdf_continents['continent'],  # Texto que se mostrará en el hover
+                visible=False,
                 name='Continents'
             ))
 
@@ -68,14 +74,15 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
                 lon=gdf_capitals.geometry.x,
                 mode='markers',
                 marker=go.scattermapbox.Marker(size=9, color='red'),
-                text=gdf_capitals['CAPITAL'],
+                text=gdf_capitals['CAPITAL'],  # Añadir nombres de las capitales como etiquetas
+                hoverinfo="text",  # Mostrar solo el texto en el hover
                 visible=True,
                 name='Capitals'
             ))
 
             fig.update_layout(
                 mapbox_style="carto-positron",
-                mapbox_zoom=3,
+                mapbox_zoom=1.5,
                 mapbox_center={"lat": 20.0, "lon": 0.0},
                 updatemenus=[
                     {
@@ -93,6 +100,16 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
                             {
                                 "args": [{"visible": [False, False, True]}],
                                 "label": "Capitals",
+                                "method": "update"
+                            },
+                            {
+                                "args": [{"visible": [True, False, True]}],
+                                "label": "Countries & Capitals",
+                                "method": "update"
+                            },
+                            {
+                                "args": [{"visible": [False, True, True]}],
+                                "label": "Continents & Capitals",
                                 "method": "update"
                             },
                             {
