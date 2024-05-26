@@ -3,6 +3,7 @@ import socketserver
 import geopandas as gpd
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import json
 from io import StringIO
 
@@ -80,6 +81,34 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
                 name='Capitals'
             ))
 
+            # Añadir mapa de calor
+            fig.add_trace(go.Densitymapbox(
+                lat=gdf_capitals.geometry.y,
+                lon=gdf_capitals.geometry.x,
+                z=[1] * len(gdf_capitals),  # Pesos uniformes para todas las capitales
+                radius=10,
+                colorscale='YlOrRd',
+                opacity=0.6,
+                visible=False,
+                name='Heatmap'
+            ))
+
+            # Añadir mapa de bombolles
+            fig.add_trace(go.Scattermapbox(
+                lat=gdf_capitals.geometry.y,
+                lon=gdf_capitals.geometry.x,
+                mode='markers',
+                marker=go.scattermapbox.Marker(
+                    size=15,
+                    color='blue',
+                    opacity=0.6
+                ),
+                text=gdf_capitals['CAPITAL'],
+                hoverinfo="text",
+                visible=False,
+                name='Bubble Map'
+            ))
+
             fig.update_layout(
                 mapbox_style="carto-positron",
                 mapbox_zoom=1.5,
@@ -88,32 +117,42 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
                     {
                         "buttons": [
                             {
-                                "args": [{"visible": [True, False, False]}],
+                                "args": [{"visible": [True, False, False, False, False]}],
                                 "label": "Countries",
                                 "method": "update"
                             },
                             {
-                                "args": [{"visible": [False, True, False]}],
+                                "args": [{"visible": [False, True, False, False, False]}],
                                 "label": "Continents",
                                 "method": "update"
                             },
                             {
-                                "args": [{"visible": [False, False, True]}],
+                                "args": [{"visible": [False, False, True, False, False]}],
                                 "label": "Capitals",
                                 "method": "update"
                             },
                             {
-                                "args": [{"visible": [True, False, True]}],
+                                "args": [{"visible": [False, False, False, True, False]}],
+                                "label": "Heatmap",
+                                "method": "update"
+                            },
+                            {
+                                "args": [{"visible": [False, False, False, False, True]}],
+                                "label": "Bubble Map",
+                                "method": "update"
+                            },
+                            {
+                                "args": [{"visible": [True, False, True, False, False]}],
                                 "label": "Countries & Capitals",
                                 "method": "update"
                             },
                             {
-                                "args": [{"visible": [False, True, True]}],
+                                "args": [{"visible": [False, True, True, False, False]}],
                                 "label": "Continents & Capitals",
                                 "method": "update"
                             },
                             {
-                                "args": [{"visible": [True, True, True]}],
+                                "args": [{"visible": [True, True, True, False, False]}],
                                 "label": "All",
                                 "method": "update"
                             }
