@@ -183,7 +183,7 @@ class GeoJSONHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/':
-            self.path = 'index.html'
+            self.path = 'templates/index.html'
         elif self.path == '/map.html':
             self.path = 'templates/map.html'
         return http.server.SimpleHTTPRequestHandler.do_GET(self)

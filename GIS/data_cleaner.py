@@ -1,3 +1,4 @@
+# GIS/data_cleaner.py
 import json
 import pandas as pd
 
@@ -31,6 +32,12 @@ class DataCleaner:
     def save_clean_data(self, output_geojson_path):
         with open(output_geojson_path, 'w') as f:
             json.dump(self.countries_geojson, f)
+
+
+    def convert_code(self, code):
+        with open('country_conversion.json', 'r') as f:
+            codes = json.load(f)
+        return codes.get(code.upper(), "Código no encontrado")
 
 
 if __name__ == "__main__":
